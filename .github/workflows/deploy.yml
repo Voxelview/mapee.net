@@ -1,0 +1,37 @@
+# Builds the site and publishes it to GitHub Pages on every push to main (including merged PRs).
+# Same as running `npm run deploy` locally: angular-cli-ghpages pushes the build to the gh-pages
+# branch, which GitHub Pages serves at https://mapee.net.
+#
+# New Mapee releases don't need a deploy: the download page reads the release info from the bucket.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the built site to the gh-pages branch
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Publish to GitHub Pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run deploy -- --name="github-actions[bot]" --email="41898282+github-actions[bot]@users.noreply.github.com"
