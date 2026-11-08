@@ -1,6 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, shareReplay } from 'rxjs';
+import { Observable, catchError, map, shareReplay } from 'rxjs';
+
+// Written by the Release workflow in Voxelview/Mapee on every release, so the site never needs
+// a redeploy to show a new version. The bucket allows this site to read it (CORS).
+const RELEASE_INFO_URL =
+  'https://storage.googleapis.com/mapee_update_bucket_goldentadpole/website/installer-info.xml';
+
+// Bundled copy, used only if the bucket can't be reached.
+const FALLBACK_INFO_URL = '/info/installer-info.xml';
 
 export interface InstallerInfo {
   version: string;
@@ -15,8 +23,9 @@ export class InstallerInfoService {
   private readonly http = inject(HttpClient);
 
   readonly info$: Observable<InstallerInfo> = this.http
-    .get('/info/installer-info.xml', { responseType: 'text' })
+    .get(RELEASE_INFO_URL, { responseType: 'text' })
     .pipe(
+      catchError(() => this.http.get(FALLBACK_INFO_URL, { responseType: 'text' })),
       map((xml) => this.parse(xml)),
       shareReplay({ bufferSize: 1, refCount: true })
     );
